@@ -1,6 +1,6 @@
 ---
 title: "Cognitive Psychology Seminar - Inhibition"
-author: "David I., L. V., L. P., S. R."
+author: "David I., L. V., L. P., S. R"
 date: '2018-03-07'
 output:
   html_document:
@@ -344,18 +344,33 @@ inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
 
 
 ```r
-inhib_crit %>% group_by(feed.f) %>% dplyr::summarize(.,  meanRT   = mean(rt),
-                                                         medianRT = median(rt),
-                                                         sdRT    = sd(rt)) %>%  knitr::kable(.)
+temp <- inhib_crit %>% group_by(feed.f) %>%
+        dplyr::summarize(.,  meanRT   = mean(rt),
+                             medianRT = median(rt),
+                             sdRT    = sd(rt)) %>% knitr::kable(.)
 ```
 
 
 
-feed.f              meanRT   medianRT        sdRT
----------------  ---------  ---------  ----------
-normal            567.7900   561.1411   101.00160
-right feedback    601.2215   588.6250    89.29126
-wrong feedback    599.8285   587.6512    89.79050
+```r
+plotDF <- inhib_crit %>% group_by(vp,feed.f) %>% 
+  dplyr::summarize(.,  meanRT   = mean(rt))
+
+
+  ggplot(plotDF, aes(x=meanRT, fill=feed.f)) +
+          geom_density(col=NA,alpha=0.4) +
+          ggtitle("Distributions of RT (ms)")
+```
+
+![](KS_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+```r
+  ggplot(plotDF, aes(y=meanRT, x=feed.f,fill=feed.f)) +
+          geom_violin(col=NA,alpha=0.4) +
+          ggtitle("Distributions of RT (ms)")
+```
+
+![](KS_files/figure-html/unnamed-chunk-10-2.png)<!-- -->
 
 
 #### ANOVA
@@ -469,7 +484,7 @@ ggplot(id, aes(x=feed.f, y=mean, fill=feed.f)) +
         )
 ```
 
-![](KS_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+![](KS_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
 
 ```r
 ggplot(id, aes(x=feed.f, y=mean,group=1)) +
@@ -486,7 +501,7 @@ ggplot(id, aes(x=feed.f, y=mean,group=1)) +
           )
 ```
 
-![](KS_files/figure-html/unnamed-chunk-11-2.png)<!-- -->
+![](KS_files/figure-html/unnamed-chunk-12-2.png)<!-- -->
 
 ```r
 ggplot(id, aes(x=feed.f, y=mean, group=1)) +
@@ -505,21 +520,172 @@ ggplot(id, aes(x=feed.f, y=mean, group=1)) +
         )
 ```
 
-![](KS_files/figure-html/unnamed-chunk-11-3.png)<!-- -->
+![](KS_files/figure-html/unnamed-chunk-12-3.png)<!-- -->
 
 ```r
 ggsave("plotResults.png",dpi=900,width=12,height=6, units = "cm",bg = "transparent")
 ```
 
 
-<!-- # Testing / Export to jasp  -->
-<!-- ```{r} -->
-<!-- inhib_crit %>% dplyr::select(.,vp,block,feed.f,rt) %>% group_by(.,vp,feed.f) %>% summarize(., rt    = mean(rt)) %>% spread(feed.f,rt) %>% write.csv2(.,"JASP_KS.csv") -->
-
-
-<!-- ``` -->
 
 
 
+
+
+#### Bayes MLM tryout
+
+
+
+```r
+library(rethinking)
+library(rstan)
+
+
+
+temp <- inhib_crit %>%
+        group_by(vp,feed.f) %>% 
+        dplyr::summarize(.,  meanRT   = mean(rt)) %>%
+        mutate(.,feedf_n = as.numeric(feed.f),
+               feedf=feed.f) %>%
+        as.data.frame() %>% dplyr::select(.,-feed.f)
+
+
+str(temp)
+```
+
+```
+## 'data.frame':	57 obs. of  4 variables:
+##  $ vp     : num  1 1 1 2 2 2 4 4 4 5 ...
+##  $ meanRT : num  499 513 538 535 543 ...
+##  $ feedf_n: num  1 2 3 1 2 3 1 2 3 1 ...
+##  $ feedf  : Factor w/ 3 levels "normal","right feedback",..: 1 2 3 1 2 3 1 2 3 1 ...
+```
+
+```r
+  mod <- map2stan(
+    alist(
+      meanRT ~ dnorm( mu , sigma ),
+
+      mu <- a + a_feedf[feedf_n],
+      a_feedf[feedf_n] ~ dnorm( 0 ,sigma_feed),
+      a ~ dnorm(0,100),
+      sigma_feed ~ dcauchy(0,1),
+      sigma ~ dcauchy(0,1)
+    ) ,
+  data=temp, warmup=1000 , iter=6000 , chains=1 , cores=3)
+```
+
+```
+## In file included from C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/config.hpp:39:0,
+##                  from C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/math/tools/config.hpp:13,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/rev/core/var.hpp:7,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/rev/core/gevv_vvv_vari.hpp:5,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/rev/core.hpp:12,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/rev/mat.hpp:4,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math.hpp:4,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/src/stan/model/model_header.hpp:4,
+##                  from file4f504b7e4471.cpp:8:
+## C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/config/compiler/gcc.hpp:186:0: warning: "BOOST_NO_CXX11_RVALUE_REFERENCES" redefined
+##  #  define BOOST_NO_CXX11_RVALUE_REFERENCES
+##  ^
+## <command-line>:0:0: note: this is the location of the previous definition
+## In file included from C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/multi_array/base.hpp:28:0,
+##                  from C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/multi_array.hpp:21,
+##                  from C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/numeric/odeint/util/multi_array_adaption.hpp:29,
+##                  from C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/numeric/odeint.hpp:61,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/prim/arr/functor/integrate_ode_rk45.hpp:17,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/prim/arr.hpp:38,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/prim/mat.hpp:298,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/rev/mat.hpp:12,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math.hpp:4,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/src/stan/model/model_header.hpp:4,
+##                  from file4f504b7e4471.cpp:8:
+## C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/multi_array/concept_checks.hpp: In static member function 'static void boost::multi_array_concepts::detail::idgen_helper<N>::call(Array&, const IdxGen&, Call_Type)':
+## C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/multi_array/concept_checks.hpp:42:43: warning: typedef 'index_range' locally defined but not used [-Wunused-local-typedefs]
+##        typedef typename Array::index_range index_range;
+##                                            ^
+## C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/multi_array/concept_checks.hpp:43:37: warning: typedef 'index' locally defined but not used [-Wunused-local-typedefs]
+##        typedef typename Array::index index;
+##                                      ^
+## C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/multi_array/concept_checks.hpp: In static member function 'static void boost::multi_array_concepts::detail::idgen_helper<0ull>::call(Array&, const IdxGen&, Call_Type)':
+## C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/multi_array/concept_checks.hpp:53:43: warning: typedef 'index_range' locally defined but not used [-Wunused-local-typedefs]
+##        typedef typename Array::index_range index_range;
+##                                            ^
+## C:/Users/David/Documents/R/win-library/3.4/BH/include/boost/multi_array/concept_checks.hpp:54:37: warning: typedef 'index' locally defined but not used [-Wunused-local-typedefs]
+##        typedef typename Array::index index;
+##                                      ^
+## In file included from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/rev/core.hpp:44:0,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/rev/mat.hpp:4,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math.hpp:4,
+##                  from C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/src/stan/model/model_header.hpp:4,
+##                  from file4f504b7e4471.cpp:8:
+## C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/rev/core/set_zero_all_adjoints.hpp: At global scope:
+## C:/Users/David/Documents/R/win-library/3.4/StanHeaders/include/stan/math/rev/core/set_zero_all_adjoints.hpp:14:17: warning: 'void stan::math::set_zero_all_adjoints()' defined but not used [-Wunused-function]
+##      static void set_zero_all_adjoints() {
+##                  ^
+## 
+## SAMPLING FOR MODEL 'meanRT ~ dnorm(mu, sigma)' NOW (CHAIN 1).
+## 
+## Gradient evaluation took 0 seconds
+## 1000 transitions using 10 leapfrog steps per transition would take 0 seconds.
+## Adjust your expectations accordingly!
+## 
+## 
+## Iteration:    1 / 6000 [  0%]  (Warmup)
+## Iteration:  600 / 6000 [ 10%]  (Warmup)
+## Iteration: 1001 / 6000 [ 16%]  (Sampling)
+## Iteration: 1600 / 6000 [ 26%]  (Sampling)
+## Iteration: 2200 / 6000 [ 36%]  (Sampling)
+## Iteration: 2800 / 6000 [ 46%]  (Sampling)
+## Iteration: 3400 / 6000 [ 56%]  (Sampling)
+## Iteration: 4000 / 6000 [ 66%]  (Sampling)
+## Iteration: 4600 / 6000 [ 76%]  (Sampling)
+## Iteration: 5200 / 6000 [ 86%]  (Sampling)
+## Iteration: 5800 / 6000 [ 96%]  (Sampling)
+## Iteration: 6000 / 6000 [100%]  (Sampling)
+## 
+##  Elapsed Time: 0.158 seconds (Warm-up)
+##                4.4 seconds (Sampling)
+##                4.558 seconds (Total)
+## 
+## 
+## SAMPLING FOR MODEL 'meanRT ~ dnorm(mu, sigma)' NOW (CHAIN 1).
+## 
+## Gradient evaluation took 0 seconds
+## 1000 transitions using 10 leapfrog steps per transition would take 0 seconds.
+## Adjust your expectations accordingly!
+## 
+## 
+## WARNING: No variance estimation is
+##          performed for num_warmup < 20
+## 
+## Iteration: 1 / 1 [100%]  (Sampling)
+## 
+##  Elapsed Time: 0 seconds (Warm-up)
+##                0 seconds (Sampling)
+##                0 seconds (Total)
+## 
+## [ 500 / 5000 ][ 1000 / 5000 ][ 1500 / 5000 ][ 2000 / 5000 ][ 2500 / 5000 ][ 3000 / 5000 ][ 3500 / 5000 ][ 4000 / 5000 ][ 4500 / 5000 ][ 5000 / 5000 ]
+```
+
+```r
+precis(mod,depth=2) # depth=2 displays varying effects
+```
+
+```
+##              Mean StdDev lower 0.89 upper 0.89 n_eff Rhat
+## a_feedf[1] 392.90 214.38     -11.06     614.38     7 1.21
+## a_feedf[2] 421.41 224.24      -7.45     642.51     7 1.21
+## a_feedf[3] 420.86 224.13      -4.14     643.19     7 1.21
+## a          178.04 219.80     -43.65     598.75     7 1.21
+## sigma_feed 443.24 365.21       0.25     792.12    17 1.07
+## sigma       50.00   4.81      42.38      57.40  3678 1.00
+```
+
+```r
+plot(precis(mod,depth=2)) # also plot
+```
+
+![](KS_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 
 

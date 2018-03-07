@@ -362,47 +362,47 @@ ggsave("plotResults.png",dpi=900,width=12,height=6, units = "cm",bg = "transpare
 
 
 
-#### Bayes MLM tryout
+<!-- #### Bayes MLM tryout -->
 
 
-```{r}
-library(rethinking)
-library(rstan)
-
-
-
-temp <- inhib_crit %>%
-        group_by(vp,feed.f) %>% 
-        dplyr::summarize(.,  meanRT   = mean(rt)) %>%
-        mutate(.,feedf_n = as.numeric(feed.f),
-               feedf=feed.f) %>%
-        as.data.frame() %>% dplyr::select(.,-feed.f)
-
-
-str(temp)
+<!-- ```{r} -->
+<!-- library(rethinking) -->
+<!-- library(rstan) -->
 
 
 
+<!-- temp <- inhib_crit %>% -->
+<!--         group_by(vp,feed.f) %>%  -->
+<!--         dplyr::summarize(.,  meanRT   = mean(rt)) %>% -->
+<!--         mutate(.,feedf_n = as.numeric(feed.f), -->
+<!--                feedf=feed.f) %>% -->
+<!--         as.data.frame() %>% dplyr::select(.,-feed.f) -->
 
 
-  mod <- map2stan(
-    alist(
-      meanRT ~ dnorm( mu , sigma ),
-
-      mu <- a + a_feedf[feedf_n],
-      a_feedf[feedf_n] ~ dnorm( 0 ,sigma_feed),
-      a ~ dnorm(0,100),
-      sigma_feed ~ dcauchy(0,1),
-      sigma ~ dcauchy(0,1)
-    ) ,
-  data=temp, warmup=1000 , iter=6000 , chains=1 , cores=3)
-
-
-precis(mod,depth=2) # depth=2 displays varying effects
-plot(precis(mod,depth=2)) # also plot
+<!-- str(temp) -->
 
 
 
-```
+
+
+<!--   mod <- map2stan( -->
+<!--     alist( -->
+<!--       meanRT ~ dnorm( mu , sigma ), -->
+
+<!--       mu <- a + a_feedf[feedf_n], -->
+<!--       a_feedf[feedf_n] ~ dnorm( 0 ,sigma_feed), -->
+<!--       a ~ dnorm(0,100), -->
+<!--       sigma_feed ~ dcauchy(0,1), -->
+<!--       sigma ~ dcauchy(0,1) -->
+<!--     ) , -->
+<!--   data=temp, warmup=1000 , iter=6000 , chains=1 , cores=3) -->
+
+
+<!-- precis(mod,depth=2) # depth=2 displays varying effects -->
+<!-- plot(precis(mod,depth=2)) # also plot -->
+
+
+
+<!-- ``` -->
 
 

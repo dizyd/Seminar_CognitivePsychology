@@ -1,6 +1,6 @@
 ---
 title: "Cognitive Psychology Seminar - Inhibition"
-author: "David I., L. V., L. P., S. R."
+author: "David I., L. V., L. P., S. R"
 date: '`r Sys.Date()`'
 output:
   html_document:
@@ -55,6 +55,7 @@ for(f in files){
 }
 
 inhib <- bind_rows(data)
+
 
 
 
@@ -235,10 +236,31 @@ inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
 #### Descriptives
 
 ```{r}
-inhib_crit %>% group_by(feed.f) %>% dplyr::summarize(.,  meanRT   = mean(rt),
-                                                         medianRT = median(rt),
-                                                         sdRT    = sd(rt)) %>%  knitr::kable(.)
+temp <- inhib_crit %>% group_by(feed.f) %>%
+        dplyr::summarize(.,  meanRT   = mean(rt),
+                             medianRT = median(rt),
+                             sdRT    = sd(rt)) %>% knitr::kable(.)
 
+
+
+```
+
+
+```{r}
+
+
+plotDF <- inhib_crit %>% group_by(vp,feed.f) %>% 
+  dplyr::summarize(.,  meanRT   = mean(rt))
+
+
+  ggplot(plotDF, aes(x=meanRT, fill=feed.f)) +
+          geom_density(col=NA,alpha=0.4) +
+          ggtitle("Distributions of RT (ms)")
+  
+  
+  ggplot(plotDF, aes(y=meanRT, x=feed.f,fill=feed.f)) +
+          geom_violin(col=NA,alpha=0.4) +
+          ggtitle("Distributions of RT (ms)")
 
 ```
 
@@ -335,14 +357,52 @@ ggsave("plotResults.png",dpi=900,width=12,height=6, units = "cm",bg = "transpare
 ```
 
 
-<!-- # Testing / Export to jasp  -->
-<!-- ```{r} -->
-<!-- inhib_crit %>% dplyr::select(.,vp,block,feed.f,rt) %>% group_by(.,vp,feed.f) %>% summarize(., rt    = mean(rt)) %>% spread(feed.f,rt) %>% write.csv2(.,"JASP_KS.csv") -->
-
-
-<!-- ``` -->
 
 
 
+
+
+#### Bayes MLM tryout
+
+
+```{r}
+library(rethinking)
+library(rstan)
+
+
+
+temp <- inhib_crit %>%
+        group_by(vp,feed.f) %>% 
+        dplyr::summarize(.,  meanRT   = mean(rt)) %>%
+        mutate(.,feedf_n = as.numeric(feed.f),
+               feedf=feed.f) %>%
+        as.data.frame() %>% dplyr::select(.,-feed.f)
+
+
+str(temp)
+
+
+
+
+
+  mod <- map2stan(
+    alist(
+      meanRT ~ dnorm( mu , sigma ),
+
+      mu <- a + a_feedf[feedf_n],
+      a_feedf[feedf_n] ~ dnorm( 0 ,sigma_feed),
+      a ~ dnorm(0,100),
+      sigma_feed ~ dcauchy(0,1),
+      sigma ~ dcauchy(0,1)
+    ) ,
+  data=temp, warmup=1000 , iter=6000 , chains=1 , cores=3)
+
+
+precis(mod,depth=2) # depth=2 displays varying effects
+plot(precis(mod,depth=2)) # also plot
+
+
+
+```
 
 

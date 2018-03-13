@@ -140,7 +140,7 @@ datum         | date                        | string
 
 ## Trial informations
 
-Next, I create three new variables, lag_crit, lag_error and lag_feed, where the entries of the krit,fehl and feed variables are shifted by one row, so I have the indication of the feedback type, if it is a critical trial and if the trial befor was wrong in the same row as the actual trial. At the end, I transform the feedback and block variables into  factors. 
+Next, I create three new variables, lag_crit, lag_error and lag_feed, where the entries of the krit,fehl and feed variables are shifted by one row, so I have the indication of the feedback type, if it is a critical trial and if the trial before was wrong, in the same row as the actual trial. At the end, I transform the feedback and block variables into  factors. 
 
 ```{r}
 
@@ -195,7 +195,7 @@ inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
                                              errorrate = errors/trials,
                                              meanRT = mean(rt),
                                              medianRT = median(rt),
-                                             diffMeanMedian = meanRT-medianRT)  %>%  knitr::kable(.)
+                                             diffMeanMedian = meanRT-medianRT)
 
 ```
 
@@ -256,10 +256,10 @@ inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
 #### Descriptives
 
 ```{r}
-temp <- inhib_crit %>% group_by(feed.f) %>%
+inhib_crit %>% group_by(feed.f) %>%
         dplyr::summarize(.,  meanRT   = mean(rt),
                              medianRT = median(rt),
-                             sdRT    = sd(rt)) %>% knitr::kable(.)
+                             sdRT    = sd(rt))
 
 
 

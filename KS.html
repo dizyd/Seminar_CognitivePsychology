@@ -511,7 +511,7 @@ inhib &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(data)</cod
 </div>
 <div id="trial-informations" class="section level2">
 <h2><span class="header-section-number">2.2</span> Trial informations</h2>
-<p>Next, I create three new variables, lag_crit, lag_error and lag_feed, where the entries of the krit,fehl and feed variables are shifted by one row, so I have the indication of the feedback type, if it is a critical trial and if the trial befor was wrong in the same row as the actual trial. At the end, I transform the feedback and block variables into factors.</p>
+<p>Next, I create three new variables, lag_crit, lag_error and lag_feed, where the entries of the krit,fehl and feed variables are shifted by one row, so I have the indication of the feedback type, if it is a critical trial and if the trial before was wrong, in the same row as the actual trial. At the end, I transform the feedback and block variables into factors.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">inhib &lt;-<span class="st"> </span>inhib <span class="op">%&gt;%</span><span class="st"> </span>dplyr<span class="op">::</span><span class="kw">select</span>(.,<span class="op">-</span>trg,<span class="op">-</span>trial,<span class="op">-</span>stnr,<span class="op">-</span>sneu, <span class="op">-</span>iti,<span class="op">-</span>datum) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">                  </span><span class="kw">mutate</span>(., <span class="dt">lag_crit =</span> <span class="kw">lag</span>(krit) <span class="op">+</span><span class="st"> </span><span class="dv">0</span>,
                             <span class="dt">lag_feed =</span> <span class="kw">lag</span>(feed) <span class="op">+</span><span class="st"> </span><span class="dv">0</span>,
@@ -552,266 +552,12 @@ inhib <span class="op">%&gt;%</span><span class="st">   </span><span class="kw">
                                              <span class="dt">errorrate =</span> errors<span class="op">/</span>trials,
                                              <span class="dt">meanRT =</span> <span class="kw">mean</span>(rt),
                                              <span class="dt">medianRT =</span> <span class="kw">median</span>(rt),
-                                             <span class="dt">diffMeanMedian =</span> meanRT<span class="op">-</span>medianRT)  <span class="op">%&gt;%</span><span class="st">  </span>knitr<span class="op">::</span><span class="kw">kable</span>(.)</code></pre></div>
-<table>
-<thead>
-<tr class="header">
-<th align="right">vp</th>
-<th align="right">trials</th>
-<th align="right">criticaltrials</th>
-<th align="right">errors</th>
-<th align="right">lag_errors</th>
-<th align="right">errorrate</th>
-<th align="right">meanRT</th>
-<th align="right">medianRT</th>
-<th align="right">diffMeanMedian</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="right">1</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">4</td>
-<td align="right">4</td>
-<td align="right">0.0222222</td>
-<td align="right">503.4709</td>
-<td align="right">502.2512</td>
-<td align="right">1.219694</td>
-</tr>
-<tr class="even">
-<td align="right">2</td>
-<td align="right">180</td>
-<td align="right">59</td>
-<td align="right">5</td>
-<td align="right">3</td>
-<td align="right">0.0277778</td>
-<td align="right">534.0199</td>
-<td align="right">531.5727</td>
-<td align="right">2.447211</td>
-</tr>
-<tr class="odd">
-<td align="right">3</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">24</td>
-<td align="right">24</td>
-<td align="right">0.1333333</td>
-<td align="right">570.4207</td>
-<td align="right">609.2445</td>
-<td align="right">-38.823821</td>
-</tr>
-<tr class="even">
-<td align="right">4</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">10</td>
-<td align="right">11</td>
-<td align="right">0.0555556</td>
-<td align="right">661.7285</td>
-<td align="right">665.7622</td>
-<td align="right">-4.033619</td>
-</tr>
-<tr class="odd">
-<td align="right">5</td>
-<td align="right">180</td>
-<td align="right">59</td>
-<td align="right">14</td>
-<td align="right">19</td>
-<td align="right">0.0777778</td>
-<td align="right">566.8308</td>
-<td align="right">572.5443</td>
-<td align="right">-5.713548</td>
-</tr>
-<tr class="even">
-<td align="right">6</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">31</td>
-<td align="right">24</td>
-<td align="right">0.1722222</td>
-<td align="right">600.9195</td>
-<td align="right">628.8779</td>
-<td align="right">-27.958409</td>
-</tr>
-<tr class="odd">
-<td align="right">7</td>
-<td align="right">180</td>
-<td align="right">59</td>
-<td align="right">4</td>
-<td align="right">3</td>
-<td align="right">0.0222222</td>
-<td align="right">603.6619</td>
-<td align="right">598.2342</td>
-<td align="right">5.427707</td>
-</tr>
-<tr class="even">
-<td align="right">8</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">0</td>
-<td align="right">10</td>
-<td align="right">0.0000000</td>
-<td align="right">544.5427</td>
-<td align="right">531.5130</td>
-<td align="right">13.029756</td>
-</tr>
-<tr class="odd">
-<td align="right">9</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">4</td>
-<td align="right">7</td>
-<td align="right">0.0222222</td>
-<td align="right">593.1743</td>
-<td align="right">589.9266</td>
-<td align="right">3.247636</td>
-</tr>
-<tr class="even">
-<td align="right">10</td>
-<td align="right">180</td>
-<td align="right">59</td>
-<td align="right">4</td>
-<td align="right">8</td>
-<td align="right">0.0222222</td>
-<td align="right">604.2257</td>
-<td align="right">617.9935</td>
-<td align="right">-13.767768</td>
-</tr>
-<tr class="odd">
-<td align="right">11</td>
-<td align="right">180</td>
-<td align="right">59</td>
-<td align="right">0</td>
-<td align="right">7</td>
-<td align="right">0.0000000</td>
-<td align="right">542.2122</td>
-<td align="right">547.9417</td>
-<td align="right">-5.729524</td>
-</tr>
-<tr class="even">
-<td align="right">12</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">9</td>
-<td align="right">10</td>
-<td align="right">0.0500000</td>
-<td align="right">604.0344</td>
-<td align="right">612.0052</td>
-<td align="right">-7.970868</td>
-</tr>
-<tr class="odd">
-<td align="right">13</td>
-<td align="right">180</td>
-<td align="right">59</td>
-<td align="right">2</td>
-<td align="right">4</td>
-<td align="right">0.0111111</td>
-<td align="right">546.4725</td>
-<td align="right">542.9792</td>
-<td align="right">3.493267</td>
-</tr>
-<tr class="even">
-<td align="right">14</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">5</td>
-<td align="right">7</td>
-<td align="right">0.0277778</td>
-<td align="right">600.9711</td>
-<td align="right">599.3418</td>
-<td align="right">1.629354</td>
-</tr>
-<tr class="odd">
-<td align="right">15</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">3</td>
-<td align="right">10</td>
-<td align="right">0.0166667</td>
-<td align="right">567.8581</td>
-<td align="right">566.3217</td>
-<td align="right">1.536454</td>
-</tr>
-<tr class="even">
-<td align="right">16</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">1</td>
-<td align="right">3</td>
-<td align="right">0.0055556</td>
-<td align="right">515.2684</td>
-<td align="right">520.7478</td>
-<td align="right">-5.479391</td>
-</tr>
-<tr class="odd">
-<td align="right">17</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">7</td>
-<td align="right">11</td>
-<td align="right">0.0388889</td>
-<td align="right">563.5538</td>
-<td align="right">568.7484</td>
-<td align="right">-5.194593</td>
-</tr>
-<tr class="even">
-<td align="right">18</td>
-<td align="right">180</td>
-<td align="right">59</td>
-<td align="right">99</td>
-<td align="right">70</td>
-<td align="right">0.5500000</td>
-<td align="right">574.5874</td>
-<td align="right">578.6523</td>
-<td align="right">-4.064921</td>
-</tr>
-<tr class="odd">
-<td align="right">19</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">0</td>
-<td align="right">6</td>
-<td align="right">0.0000000</td>
-<td align="right">548.7362</td>
-<td align="right">539.6148</td>
-<td align="right">9.121364</td>
-</tr>
-<tr class="even">
-<td align="right">20</td>
-<td align="right">180</td>
-<td align="right">59</td>
-<td align="right">4</td>
-<td align="right">6</td>
-<td align="right">0.0222222</td>
-<td align="right">611.9694</td>
-<td align="right">623.1285</td>
-<td align="right">-11.159104</td>
-</tr>
-<tr class="odd">
-<td align="right">21</td>
-<td align="right">180</td>
-<td align="right">59</td>
-<td align="right">1</td>
-<td align="right">1</td>
-<td align="right">0.0055556</td>
-<td align="right">565.6854</td>
-<td align="right">561.8507</td>
-<td align="right">3.834735</td>
-</tr>
-<tr class="even">
-<td align="right">22</td>
-<td align="right">180</td>
-<td align="right">60</td>
-<td align="right">5</td>
-<td align="right">2</td>
-<td align="right">0.0277778</td>
-<td align="right">578.0701</td>
-<td align="right">569.3935</td>
-<td align="right">8.676647</td>
-</tr>
-</tbody>
-</table>
+                                             <span class="dt">diffMeanMedian =</span> meanRT<span class="op">-</span>medianRT)</code></pre></div>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["vp"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["trials"],"name":[2],"type":["int"],"align":["right"]},{"label":["criticaltrials"],"name":[3],"type":["int"],"align":["right"]},{"label":["errors"],"name":[4],"type":["int"],"align":["right"]},{"label":["lag_errors"],"name":[5],"type":["int"],"align":["right"]},{"label":["errorrate"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["meanRT"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["medianRT"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["diffMeanMedian"],"name":[9],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"180","3":"60","4":"4","5":"4","6":"0.022222222","7":"503.4709","8":"502.2512","9":"1.219694"},{"1":"2","2":"180","3":"59","4":"5","5":"3","6":"0.027777778","7":"534.0199","8":"531.5727","9":"2.447211"},{"1":"3","2":"180","3":"60","4":"24","5":"24","6":"0.133333333","7":"570.4207","8":"609.2445","9":"-38.823821"},{"1":"4","2":"180","3":"60","4":"10","5":"11","6":"0.055555556","7":"661.7285","8":"665.7622","9":"-4.033619"},{"1":"5","2":"180","3":"59","4":"14","5":"19","6":"0.077777778","7":"566.8308","8":"572.5443","9":"-5.713548"},{"1":"6","2":"180","3":"60","4":"31","5":"24","6":"0.172222222","7":"600.9195","8":"628.8779","9":"-27.958409"},{"1":"7","2":"180","3":"59","4":"4","5":"3","6":"0.022222222","7":"603.6619","8":"598.2342","9":"5.427707"},{"1":"8","2":"180","3":"60","4":"0","5":"10","6":"0.000000000","7":"544.5427","8":"531.5130","9":"13.029756"},{"1":"9","2":"180","3":"60","4":"4","5":"7","6":"0.022222222","7":"593.1743","8":"589.9266","9":"3.247636"},{"1":"10","2":"180","3":"59","4":"4","5":"8","6":"0.022222222","7":"604.2257","8":"617.9935","9":"-13.767768"},{"1":"11","2":"180","3":"59","4":"0","5":"7","6":"0.000000000","7":"542.2122","8":"547.9417","9":"-5.729524"},{"1":"12","2":"180","3":"60","4":"9","5":"10","6":"0.050000000","7":"604.0344","8":"612.0052","9":"-7.970868"},{"1":"13","2":"180","3":"59","4":"2","5":"4","6":"0.011111111","7":"546.4725","8":"542.9792","9":"3.493267"},{"1":"14","2":"180","3":"60","4":"5","5":"7","6":"0.027777778","7":"600.9711","8":"599.3418","9":"1.629354"},{"1":"15","2":"180","3":"60","4":"3","5":"10","6":"0.016666667","7":"567.8581","8":"566.3217","9":"1.536454"},{"1":"16","2":"180","3":"60","4":"1","5":"3","6":"0.005555556","7":"515.2684","8":"520.7478","9":"-5.479391"},{"1":"17","2":"180","3":"60","4":"7","5":"11","6":"0.038888889","7":"563.5538","8":"568.7484","9":"-5.194594"},{"1":"18","2":"180","3":"59","4":"99","5":"70","6":"0.550000000","7":"574.5874","8":"578.6523","9":"-4.064921"},{"1":"19","2":"180","3":"60","4":"0","5":"6","6":"0.000000000","7":"548.7362","8":"539.6148","9":"9.121364"},{"1":"20","2":"180","3":"59","4":"4","5":"6","6":"0.022222222","7":"611.9694","8":"623.1285","9":"-11.159104"},{"1":"21","2":"180","3":"59","4":"1","5":"1","6":"0.005555556","7":"565.6854","8":"561.8507","9":"3.834735"},{"1":"22","2":"180","3":"60","4":"5","5":"2","6":"0.027777778","7":"578.0701","8":"569.3935","9":"8.676647"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
 <p>There are some people with a high error rate (&gt;10 %) even in this easy task. I will exclude all participants with an error rate &gt; 10 %.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">inhib_crit &lt;-<span class="st"> </span><span class="kw">filter</span>(inhib_crit,vp <span class="op">!=</span><span class="dv">3</span> <span class="op">&amp;</span><span class="st"> </span>vp <span class="op">!=</span><span class="st"> </span><span class="dv">6</span> <span class="op">&amp;</span><span class="st"> </span>vp <span class="op">!=</span><span class="st"> </span><span class="dv">18</span>)</code></pre></div>
 <div id="updated-demographics" class="section level4">
@@ -900,10 +646,15 @@ psych<span class="op">::</span><span class="kw">describe</span>(demo<span class=
 <h3><span class="header-section-number">2.3.2</span> Within-ANOVA</h3>
 <div id="descriptives" class="section level4">
 <h4><span class="header-section-number">2.3.2.1</span> Descriptives</h4>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">temp &lt;-<span class="st"> </span>inhib_crit <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">group_by</span>(feed.f) <span class="op">%&gt;%</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">inhib_crit <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">group_by</span>(feed.f) <span class="op">%&gt;%</span>
 <span class="st">        </span>dplyr<span class="op">::</span><span class="kw">summarize</span>(.,  <span class="dt">meanRT   =</span> <span class="kw">mean</span>(rt),
                              <span class="dt">medianRT =</span> <span class="kw">median</span>(rt),
-                             <span class="dt">sdRT    =</span> <span class="kw">sd</span>(rt)) <span class="op">%&gt;%</span><span class="st"> </span>knitr<span class="op">::</span><span class="kw">kable</span>(.)</code></pre></div>
+                             <span class="dt">sdRT    =</span> <span class="kw">sd</span>(rt))</code></pre></div>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["feed.f"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["meanRT"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["medianRT"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["sdRT"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"normal","2":"566.7679","3":"560.4784","4":"100.25440"},{"1":"right feedback","2":"600.7594","3":"589.2192","4":"89.00507"},{"1":"wrong feedback","2":"598.0114","3":"586.8581","4":"88.52051"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">plotDF &lt;-<span class="st"> </span>inhib_crit <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">group_by</span>(vp,feed.f) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span>dplyr<span class="op">::</span><span class="kw">summarize</span>(.,  <span class="dt">meanRT   =</span> <span class="kw">mean</span>(rt))
 

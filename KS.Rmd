@@ -136,18 +136,27 @@ iti           | true inter trial interval   | Integer  ~ 1100 ms
 ssd           | true Stop-signal delay      | Integer  ~ 0,100,200 ms
 datum         | date                        | string 
 
+
+
 ## Trial informations
+
+Next, I create three new variables, lag_crit, lag_error and lag_feed, where the entries of the krit,fehl and feed variables are shifted by one row, so I have the indication of the feedback type, if it is a critical trial and if the trial befor was wrong in the same row as the actual trial. At the end, I transform the feedback and block variables into  factors. 
 
 ```{r}
 
+inhib <- inhib %>% dplyr::select(.,-trg,-trial,-stnr,-sneu, -iti,-datum) %>% 
+                  mutate(., lag_crit = lag(krit) + 0,
+                            lag_feed = lag(feed) + 0,
+                            lag_error= lag(fehl) + 0) %>% 
+                  dplyr::select(.,vp,alt,std,ges,block,rgf,res,stop,kat,krit,ssd,
+                                  fehl,lag_feed,lag_crit,lag_error,rt) %>% 
+                  mutate(.,feed.f=factor(lag_feed,levels=c(0,1,2),
+                                         labels=c("normal","right feedback","wrong feedback")),
+                           block.f=factor(block))
 
 
-(inhib %>% dplyr::select(.,-std,-trg,-trial,-stnr,-sneu, -iti,-datum) %>% 
-                  mutate(., lag_crit = lag(krit) + 0, lag_feed = lag(feed) + 0) %>% 
-                  dplyr::select(.,vp,alt,ges,block,rgf,res,stop,kat,krit,ssd,fehl,lag_feed,lag_crit,rt) %>% 
-                  mutate(.,feed.f=factor(lag_feed,levels=c(0,1,2),labels=c("normal","right feedback","wrong feedback")),
-                           block.f=factor(block)) %>%
-                  group_by(vp,block.f) %>% summarise(., trials = length(res),
+
+inhib %>%   group_by(vp,block.f) %>% summarise(., trials = length(res),
                                                         squareTrials = sum(kat==0),
                                                         catTrials = sum(kat!=0),
                                                         criticaltrials = sum(krit==1),
@@ -155,9 +164,9 @@ datum         | date                        | string
                                                         errors = sum(fehl==1),
                                                         stop = sum(stop==1)
                                                         )  
-)
-  
 
+  
+#test <- inhib %>% filter(.,vp ==3, block == 4 | block == 5)# 140 -> 141
   
 
 ```
@@ -167,27 +176,12 @@ datum         | date                        | string
 ## Analysis
 
 
-First, we delete all variables we don't need anymore.
+First, I filter only for those trials in the experimental blocks 4-6 were the stimulus was a dog or a donut
 
 ```{r}
-inhib2 <- dplyr::select(inhib,-std,-trg,-trial,-stnr,-sneu,
-                       -iti,-datum)
+inhib_crit <-  filter(inhib, block == 4 | block == 5 | block == 6, kat == 1 | kat == 2)
 ```
 
-
-Next, I create two new variables, lag_crit and lag_feed, where the entries of the krit and feed variables are shifted by one row, so I have the indication of the feedback type and if it is a critical trial in the same row as the actual trial. Then, I filter only for those trials in the experimental blocks 4-6 were the stimulus was a dog or a donut. At the end, I transform the feedback variable into a factor. 
-
-
-```{r}
-inhib_crit <- inhib2 %>% mutate(., lag_crit = lag(krit) + 0, lag_feed = lag(feed) + 0) %>% 
-                   filter(., block == 4 | block == 5 | block == 6, kat == 1 | kat == 2) %>% 
-                   dplyr::select(.,vp,alt,ges,block,rgf,res,ssd,fehl,lag_feed,lag_crit,rt) %>% 
-                   mutate(.,feed.f=factor(lag_feed,levels=c(0,1,2),
-                                          labels=c("normal","right feedback","wrong feedback")),
-                            block.f=factor(block))
-
-inhib_crit 
-```
 
 
 ### Critical trials, errors and mean & median RT per person
@@ -197,6 +191,7 @@ inhib_crit
 inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
                                              criticaltrials = sum(lag_crit==1),
                                              errors = sum(fehl==1),
+                                             lag_errors = sum(lag_error==1),
                                              errorrate = errors/trials,
                                              meanRT = mean(rt),
                                              medianRT = median(rt),
@@ -218,8 +213,8 @@ demo <- inhib %>% dplyr::select(.,vp,alt,ges,std) %>%
         summarise(age = mean(alt, na.rm = T),
                   gender = mean(ges, na.rm = T),
                   std = mean(std, na.rm = T)) %>% 
-        mutate(., gender.f = factor(gender,label=c("male","female","NA"),levels=c(1,2,9)), 
-                  std.f = factor(std,label=c("psychology","erziehungswiss","lehramt","other","NA"),
+        mutate(., gender.f = factor(gender,labels=c("male","female","NA"),levels=c(1,2,9)), 
+                  std.f = factor(std,labels=c("psychology","erziehungswiss","lehramt","other","NA"),
                             levels=c(1,2,3,4,9)))
   
 
@@ -236,10 +231,10 @@ filter(inhib_crit,fehl==1)
 ```
 
 
-There are a lot of errors where people didn't press any button and therefore get an reaction time == 0. Also, error trials tend to be faster. Therefore, I will exclude all trials with errors.
+There are a lot of errors where people didn't press any button and therefore get an reaction time == 0. Also, error trials tend to be faster. Therefore, I will exclude all trials with errors. I will also exclude all critical trials were the square trial before was answered wrong.
 
 ```{r}
-inhib_crit <- filter(inhib_crit,fehl==0)
+inhib_crit <- filter(inhib_crit,fehl==0 & lag_error==0)
 ```
 
 Critical trials, errors and mean & median RT per person:
@@ -248,10 +243,11 @@ Critical trials, errors and mean & median RT per person:
 inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
                                              criticaltrials = sum(lag_crit==1),
                                              errors = sum(fehl==1),
+                                             lage_errors=sum(lag_error==1),
                                              errorrate = errors/criticaltrials,
                                              meanRT = mean(rt),
                                              medianRT = median(rt),
-                                             diffMeanMedian = meanRT-medianRT)  %>%  knitr::kable(.)
+                                             diffMeanMedian = meanRT-medianRT)
 
 ```
 

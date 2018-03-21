@@ -55,15 +55,13 @@ for(f in files){
 }
 
 inhib <- bind_rows(data)
-
-
-
-
 ```
 
 
 ```{r,showHead}
-head(inhib)
+inhib
+
+filter(inhib, stop == 1)
 ```
 
 # Participants
@@ -147,9 +145,10 @@ Next, I create three new variables, lag_crit, lag_error and lag_feed, where the 
 inhib <- inhib %>% dplyr::select(.,-trg,-trial,-stnr,-sneu, -iti,-datum) %>% 
                   mutate(., lag_crit = lag(krit) + 0,
                             lag_feed = lag(feed) + 0,
-                            lag_error= lag(fehl) + 0) %>% 
+                            lag_error= lag(fehl) + 0,
+                            lag_stop = lag(stop) + 0) %>% 
                   dplyr::select(.,vp,alt,std,ges,block,rgf,res,stop,kat,krit,ssd,
-                                  fehl,lag_feed,lag_crit,lag_error,rt) %>% 
+                                  fehl,lag_feed,lag_crit,lag_error,lag_stop,rt) %>% 
                   mutate(.,feed.f=factor(lag_feed,levels=c(0,1,2),
                                          labels=c("normal","right feedback","wrong feedback")),
                            block.f=factor(block))
@@ -162,13 +161,69 @@ inhib %>%   group_by(vp,block.f) %>% summarise(., trials = length(res),
                                                         criticaltrials = sum(krit==1),
                                                         lagcriticaltrials = sum(lag_crit==1),
                                                         errors = sum(fehl==1),
-                                                        stop = sum(stop==1)
+                                                        stopTrial = sum(stop==1),
+                                                        critStop = sum(stop==1 & krit==1)
                                                         )  
 
-  
-#test <- inhib %>% filter(.,vp ==3, block == 4 | block == 5)# 140 -> 141
-  
 
+```
+
+We want to exclude those trials, where the critical square trial and the categorization trial fall into different blocks. Number of trials now:  `r nrow(inhib)`. 
+
+```{r}
+inhib <- inhib %>% mutate(., lag_crit_block = lag(block)) %>% filter(., !(lag_crit==1 & block!=lag_crit_block))
+```
+
+New number of trials: `r nrow(inhib)`.
+
+### How many stop trials are also critical trials? 
+
+```{r}
+table("stop"=inhib$stop,"krit"=inhib$krit)
+```
+
+Every critical trial is a stop trial. 
+
+### Error Rates
+
+I will only include the blocks 4,5 and 6. 
+
+Error rates for each participant:
+
+```{r}
+(errorRates <- inhib %>% filter(., block == 4 | block == 5 | block == 6) %>% group_by(vp) %>% 
+                                summarise(., Ntrials = length(res),
+                                             Nerrors = sum(fehl==1),
+                                             ErrorTrials =  Nerrors/Ntrials,
+                                             Ncrit   = sum(lag_crit==1),
+                                             ErrorCrit = sum(lag_crit==1 & lag_error==1)/Ncrit,
+                                             Nsquare = sum(kat==0),
+                                             ErrorSquare = sum(kat==0 & fehl==1)/Nsquare,
+                                             Nstop   = sum(stop==1),
+                                             ErrorStop = sum(stop==1 & fehl==1)/Nstop,
+                                             ErrorStop100 = sum(stop==1 & fehl==1 & ssd==100)/sum(stop==1& ssd==100),
+                                             ErrorStop200 = sum(stop==1 & fehl==1 & ssd==200)/sum(stop==1& ssd==200),
+                                          
+                                             Ncat    = sum(kat!=0),
+                                             ErrorCat =  sum(kat!=0 & fehl==1)/Ncat,
+                                            ## RTs
+                                             meanRT = mean(rt),
+                                             medianRT = median(rt),
+                                             diffMeanMedian = meanRT-medianRT))
+
+```
+
+Aggregated  over all participants: 
+
+```{r}
+describe(errorRates) %>% as.data.frame() %>% select(.,mean,sd,median,min,max) %>% knitr::kable(.)
+```
+
+### Exclusion of VPN with error rates > 15 % 
+
+```{r}
+filter_vp <- filter(errorRates,ErrorTrials > 0.15) %>% select(.,vp)
+inhib <- inhib[!(inhib$vp %in% filter_vp$vp),]
 ```
 
 
@@ -184,9 +239,9 @@ inhib_crit <-  filter(inhib, block == 4 | block == 5 | block == 6, kat == 1 | ka
 
 
 
-### Critical trials, errors and mean & median RT per person
+### Error Rates (for blocks 4,5 and 6 only)
 
-
+Here we see the number of critical trials, errors and some RT descriptives per person 
 ```{r}
 inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
                                              criticaltrials = sum(lag_crit==1),
@@ -199,11 +254,29 @@ inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
 
 ```
 
-There are some people with a high error rate (>10 %) even in this easy task. I will exclude all participants with an error rate > 10 %.
+and aggregated over all persons.
 
 ```{r}
-inhib_crit <- filter(inhib_crit,vp !=3 & vp != 6 & vp != 18)
+inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
+                                             criticaltrials = sum(lag_crit==1),
+                                             errors = sum(fehl==1),
+                                             lage_errors=sum(lag_error==1),
+                                             errorrate = errors/criticaltrials,
+                                             meanRT = mean(rt),
+                                             medianRT = median(rt),
+                                             diffMeanMedian = meanRT-medianRT) %>%
+  
+                                        summarise(., meanT = mean(trials), 
+                                                     meanCT = mean(criticaltrials)
+                                                     )
 ```
+
+
+<!-- There are some people with a high error rate (>10 %) even in this easy task. I will exclude all participants with an error rate > 10 %. -->
+
+<!-- ```{r} -->
+<!-- inhib_crit <- filter(inhib_crit,vp !=3 & vp != 6 & vp != 18) -->
+<!-- ``` -->
 
 #### Updated Demographics: 
 
@@ -231,16 +304,18 @@ filter(inhib_crit,fehl==1)
 ```
 
 
-There are a lot of errors where people didn't press any button and therefore get an reaction time == 0. Also, error trials tend to be faster. Therefore, I will exclude all trials with errors. I will also exclude all critical trials were the square trial before was answered wrong.
+There are a lot of errors where people didn't press any button and therefore get an reaction time == 0. Therefore, I will exclude all trials with errors. I will also exclude all critical trials were the square trial before was answered wrong, because then the "wrong" feedback isn't wrong anymore. 
 
 ```{r}
-inhib_crit <- filter(inhib_crit,fehl==0 & lag_error==0)
+
+
+inhib_crit_we <- filter(inhib_crit,fehl==0 & lag_error==0)
 ```
 
 Critical trials, errors and mean & median RT per person:
 
 ```{r}
-inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
+inhib_crit_we %>% group_by(vp) %>% summarise(., trials = length(res),
                                              criticaltrials = sum(lag_crit==1),
                                              errors = sum(fehl==1),
                                              lage_errors=sum(lag_error==1),
@@ -251,12 +326,33 @@ inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
 
 ```
 
+
+and over all persons:
+
+```{r}
+inhib_crit_we %>% group_by(vp) %>% summarise(., trials = length(res),
+                                             criticaltrials = sum(lag_crit==1),
+                                             errors = sum(fehl==1),
+                                             lage_errors=sum(lag_error==1),
+                                             errorrate = errors/criticaltrials,
+                                             meanRT = mean(rt),
+                                             medianRT = median(rt),
+                                             diffMeanMedian = meanRT-medianRT) %>%
+  
+                                        summarise(., meanNumberOfTrials = mean(trials), 
+                                                     meanNumberOfCriticalTrials = mean(criticaltrials),
+                                                     sd = sd(criticaltrials)
+                                                     )
+                                        
+```
+
+
 ### Within-ANOVA
 
 #### Descriptives
 
 ```{r}
-inhib_crit %>% group_by(feed.f) %>%
+inhib_crit_we %>% group_by(feed.f) %>%
         dplyr::summarize(.,  meanRT   = mean(rt),
                              medianRT = median(rt),
                              sdRT    = sd(rt))
@@ -269,7 +365,7 @@ inhib_crit %>% group_by(feed.f) %>%
 ```{r}
 
 
-plotDF <- inhib_crit %>% group_by(vp,feed.f) %>% 
+plotDF <- inhib_crit_we %>% group_by(vp,feed.f) %>% 
   dplyr::summarize(.,  meanRT   = mean(rt))
 
 
@@ -287,11 +383,10 @@ plotDF <- inhib_crit %>% group_by(vp,feed.f) %>%
 
 #### ANOVA
 
+##### Aggregated By Mean 
+
 ```{r}
-
-
-
-mod <- aov_car(rt ~ feed.f + Error(vp/feed.f),data=inhib_crit)
+mod <- aov_car(rt ~ feed.f + Error(vp/feed.f),data=inhib_crit_we,fun_aggregate = mean)
 knitr::kable(nice(mod))
 
 summary(mod)
@@ -303,22 +398,47 @@ referenceGrid <- emmeans(mod, ~ feed.f)
 summary(pairs(referenceGrid, adjust="bonferroni")) %>%  knitr::kable(.)
 
 # With Block as Factor 
-mod <- aov_car(rt ~ feed.f + block.f + Error(vp/feed.f+block.f),data=inhib_crit)
+mod <- aov_car(rt ~ feed.f + block.f + Error(vp/feed.f+block.f),data=inhib_crit_we,fun_aggregate = mean)
 knitr::kable(nice(mod))
 
+# get the least square means
+referenceGrid <- emmeans(mod, ~ feed.f * block.f)
+
+# pairwise comparisons
+summary(pairs(referenceGrid, adjust="bonferroni")) %>%  knitr::kable(.)
 
 ```
 
-
-#### Plot 
+##### Aggregated By Median
 
 ```{r}
-id <- inhib_crit  %>% group_by(.,feed.f) %>%
+mod <- aov_car(rt ~ feed.f + Error(vp/feed.f),data=inhib_crit_we,fun_aggregate = median)
+knitr::kable(nice(mod))
+
+summary(mod)
+
+# get the least square means
+referenceGrid <- emmeans(mod, ~ feed.f)
+
+# pairwise comparisons
+summary(pairs(referenceGrid, adjust="bonferroni")) %>%  knitr::kable(.)
+
+# With Block as Factor 
+mod <- aov_car(rt ~ feed.f + block.f + Error(vp/feed.f+block.f),data=inhib_crit_we,fun_aggregate = median)
+knitr::kable(nice(mod))
+```
+
+
+
+#### Plots
+
+```{r}
+id <- inhib_crit_we  %>% group_by(.,feed.f) %>%
               dplyr::summarize(., mean    = mean(rt),
                                   se      = sd(rt)/sqrt(length(rt)))
 
 
-a <- inhib_crit  %>% group_by(.,feed.f,vp) %>%
+a <- inhib_crit_we  %>% group_by(.,feed.f,vp) %>%
              dplyr::summarize(., mean    = mean(rt),
                                   se      = sd(rt)/sqrt(length(rt)))
 
@@ -342,7 +462,6 @@ ggplot(id, aes(x=feed.f, y=mean, fill=feed.f)) +
         )
 
 
-
 ggplot(id, aes(x=feed.f, y=mean,group=1)) +
      geom_smooth(method="loess") +
      geom_point() +
@@ -357,7 +476,7 @@ ggplot(id, aes(x=feed.f, y=mean,group=1)) +
           )
 
 
-ggplot(id, aes(x=feed.f, y=mean, group=1)) +
+ggplot(id, aes(x=feed.f, y=mean,group=1)) +
      geom_smooth(method="loess") +
      geom_point() +
      scale_y_continuous(expand=c(0,0), limits = c(480, 720) ) +
@@ -374,55 +493,164 @@ ggplot(id, aes(x=feed.f, y=mean, group=1)) +
 
 ggsave("plotResults.png",dpi=900,width=12,height=6, units = "cm",bg = "transparent")
 
+
+
+
+id <- inhib_crit_we  %>% group_by(.,feed.f,block.f) %>%
+              dplyr::summarize(., mean    = mean(rt),
+                                  se      = sd(rt)/sqrt(length(rt)))
+
+
+a <- inhib_crit_we  %>% group_by(.,feed.f,vp,block.f) %>%
+             dplyr::summarize(., mean    = mean(rt),
+                                  se      = sd(rt)/sqrt(length(rt)))
+
+
+
+ggplot(id, aes(x=feed.f, y=mean,group=1)) +
+     geom_smooth(method="loess") +
+     geom_point() +
+     scale_y_continuous(expand=c(0,0), limits = c(480, 720) ) +
+     geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2, height = .2, position=position_dodge(.9)) +
+     geom_line(data=a,  aes(x=feed.f, y=mean, group=vp),alpha = .3,lineend = "round",position = pd) +
+     geom_point(data=a, aes(x=feed.f, y=mean,group=vp),shape = 21, alpha = .3,position = pd) +
+     theme_bw() + theme(legend.position="none") + 
+        labs(
+          #title = "Hitrate",
+          x = "Feedback type",
+          y = "RT (ms)",
+          color = NULL
+        ) +
+  facet_grid(.~block.f)
+
+
+
+
 ```
 
 
+ANOVA only for block 4 
+
+
+```{r}
+
+block4 <- filter(inhib_crit_we, block==4)
+
+mod <- aov_car(rt ~ feed.f + Error(vp/feed.f),data=block4,fun_aggregate = mean)
+knitr::kable(nice(mod))
+
+summary(mod)
+
+# get the least square means
+referenceGrid <- emmeans(mod, ~ feed.f)
+
+# pairwise comparisons
+summary(pairs(referenceGrid, adjust="bonferroni")) %>%  knitr::kable(.)
 
 
 
 
 
-<!-- #### Bayes MLM tryout -->
+
+block4_r_w <- filter(block4 , feed.f=="wrong feedback" |  feed.f=="right feedback")
+
+t.test(rt ~ feed.f,data=block4_r_w)
+```
 
 
-<!-- ```{r} -->
-<!-- library(rethinking) -->
-<!-- library(rstan) -->
+# Explorations 
+## Logistic regression on errors
 
 
+```{r}
+tab <- table(inhib_crit$fehl,inhib_crit$feed.f)
+tab
+tab[2,]/tab[1,]
 
-<!-- temp <- inhib_crit %>% -->
-<!--         group_by(vp,feed.f) %>%  -->
-<!--         dplyr::summarize(.,  meanRT   = mean(rt)) %>% -->
-<!--         mutate(.,feedf_n = as.numeric(feed.f), -->
-<!--                feedf=feed.f) %>% -->
-<!--         as.data.frame() %>% dplyr::select(.,-feed.f) -->
-
-
-<!-- str(temp) -->
-
-
-
-
-
-<!--   mod <- map2stan( -->
-<!--     alist( -->
-<!--       meanRT ~ dnorm( mu , sigma ), -->
-
-<!--       mu <- a + a_feedf[feedf_n], -->
-<!--       a_feedf[feedf_n] ~ dnorm( 0 ,sigma_feed), -->
-<!--       a ~ dnorm(0,100), -->
-<!--       sigma_feed ~ dcauchy(0,1), -->
-<!--       sigma ~ dcauchy(0,1) -->
-<!--     ) , -->
-<!--   data=temp, warmup=1000 , iter=6000 , chains=1 , cores=3) -->
-
-
-<!-- precis(mod,depth=2) # depth=2 displays varying effects -->
-<!-- plot(precis(mod,depth=2)) # also plot -->
+logmod_error <- glmer(fehl ~ feed.f + (feed.f|vp),data=inhib_crit,family=binomial)
+summary(logmod_error)
 
 
 
-<!-- ``` -->
+```
 
+
+## Only Stop Trials 
+
+```{r}
+inhib_crit_we_stop <- filter(inhib_crit_we, lag_stop==1)
+```
+
+```{r}
+id <- inhib_crit_we_stop  %>% group_by(.,feed.f) %>%
+              dplyr::summarize(., mean    = mean(rt),
+                                  se      = sd(rt)/sqrt(length(rt)))
+
+
+a <- inhib_crit_we_stop  %>% group_by(.,feed.f,vp) %>%
+             dplyr::summarize(., mean    = mean(rt),
+                                  se      = sd(rt)/sqrt(length(rt)))
+
+
+pd <- position_dodge(0.4)
+
+
+
+
+ggplot(id, aes(x=feed.f, y=mean,group=1)) +
+     geom_smooth(method="loess") +
+     geom_point() +
+     scale_y_continuous(expand=c(0,0), limits = c(480, 720) ) +
+     geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2, height = .2, position=position_dodge(.9))  +
+     geom_line(data=a,  aes(x=feed.f, y=mean, group=vp),alpha = .3,lineend = "round",position = pd) +
+     geom_point(data=a, aes(x=feed.f, y=mean,group=vp),shape = 21, alpha = .3,position = pd) +
+     theme_bw() + theme(legend.position="none") + 
+        labs(
+          #title = "Hitrate",
+          x = "Feedback type",
+          y = "RT (ms)",
+          color = NULL
+        )
+
+
+
+
+
+id <- inhib_crit_we_stop  %>% group_by(.,feed.f,block.f) %>%
+              dplyr::summarize(., mean    = mean(rt),
+                                  se      = sd(rt)/sqrt(length(rt)))
+
+
+a <- inhib_crit_we_stop  %>% group_by(.,feed.f,vp,block.f) %>%
+             dplyr::summarize(., mean    = mean(rt),
+                                  se      = sd(rt)/sqrt(length(rt)))
+
+
+
+ggplot(id, aes(x=feed.f, y=mean,group=1)) +
+     geom_smooth(method="loess") +
+     geom_point() +
+     scale_y_continuous(expand=c(0,0), limits = c(480, 720) ) +
+     geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2, height = .2, position=position_dodge(.9)) +
+     geom_line(data=a,  aes(x=feed.f, y=mean, group=vp),alpha = .3,lineend = "round",position = pd) +
+     geom_point(data=a, aes(x=feed.f, y=mean,group=vp),shape = 21, alpha = .3,position = pd) +
+     theme_bw() + theme(legend.position="none") + 
+        labs(
+          #title = "Hitrate",
+          x = "Feedback type",
+          y = "RT (ms)",
+          color = NULL
+        ) +
+  facet_grid(.~block.f)
+
+
+
+
+```
+
+```{r}
+t.test(rt ~ feed.f,data=inhib_crit_we_stop)
+
+t.test(rt ~ feed.f,data=inhib_crit_we_stop,subset=block==4)
+```
 

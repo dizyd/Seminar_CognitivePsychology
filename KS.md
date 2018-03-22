@@ -1,7 +1,7 @@
 ---
 title: "Cognitive Psychology Seminar - Inhibition"
 author: "David I., L. V., L. P., S. R"
-date: '2018-03-21'
+date: '2018-03-22'
 output:
   html_document:
     code_folding: show
@@ -896,21 +896,33 @@ right.feedback - wrong.feedback    -15.61367   10.50387   38   -1.486468   0.436
 ```r
 block4_r_w <- filter(block4 , feed.f=="wrong feedback" |  feed.f=="right feedback")
 
-t.test(rt ~ feed.f,data=block4_r_w)
+aggr_data <- block4_r_w %>% group_by(.,vp,feed.f) %>% summarize(mRT=mean(rt))
+
+leveneTest(mRT ~ feed.f,data=aggr_data)
+```
+
+<div data-pagedtable="false">
+  <script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Df"],"name":[1],"type":["int"],"align":["right"]},{"label":["F value"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Pr(>F)"],"name":[3],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"0.9002759","3":"0.3487033","_rn_":"group"},{"1":"38","2":"NA","3":"NA","_rn_":""}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+
+```r
+t.test(mRT ~ feed.f,data=aggr_data,paired=TRUE,equal.var=TRUE)
 ```
 
 ```
 ## 
-## 	Welch Two Sample t-test
+## 	Paired t-test
 ## 
-## data:  rt by feed.f
-## t = -1.5344, df = 332.01, p-value = 0.1259
+## data:  mRT by feed.f
+## t = -1.8937, df = 19, p-value = 0.07359
 ## alternative hypothesis: true difference in means is not equal to 0
 ## 95 percent confidence interval:
-##  -36.319767   4.488303
+##  -32.870596   1.643256
 ## sample estimates:
-## mean in group right feedback mean in group wrong feedback 
-##                     599.8748                     615.7906
+## mean of the differences 
+##               -15.61367
 ```
 
 

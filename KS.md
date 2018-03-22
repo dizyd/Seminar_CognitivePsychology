@@ -908,7 +908,7 @@ leveneTest(mRT ~ feed.f,data=aggr_data)
 </div>
 
 ```r
-t.test(mRT ~ feed.f,data=aggr_data,paired=TRUE,equal.var=TRUE)
+t.test(mRT ~ feed.f,data=aggr_data,paired=TRUE,equal.var=TRUE,alternative ="less")
 ```
 
 ```
@@ -916,10 +916,10 @@ t.test(mRT ~ feed.f,data=aggr_data,paired=TRUE,equal.var=TRUE)
 ## 	Paired t-test
 ## 
 ## data:  mRT by feed.f
-## t = -1.8937, df = 19, p-value = 0.07359
-## alternative hypothesis: true difference in means is not equal to 0
+## t = -1.8937, df = 19, p-value = 0.0368
+## alternative hypothesis: true difference in means is less than 0
 ## 95 percent confidence interval:
-##  -32.870596   1.643256
+##       -Inf -1.357017
 ## sample estimates:
 ## mean of the differences 
 ##               -15.61367

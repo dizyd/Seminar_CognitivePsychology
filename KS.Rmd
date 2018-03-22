@@ -557,7 +557,7 @@ block4_r_w <- filter(block4 , feed.f=="wrong feedback" |  feed.f=="right feedbac
 aggr_data <- block4_r_w %>% group_by(.,vp,feed.f) %>% summarize(mRT=mean(rt))
 
 leveneTest(mRT ~ feed.f,data=aggr_data)
-t.test(mRT ~ feed.f,data=aggr_data,paired=TRUE,equal.var=TRUE)
+t.test(mRT ~ feed.f,data=aggr_data,paired=TRUE,equal.var=TRUE,alternative ="less")
 ```
 
 

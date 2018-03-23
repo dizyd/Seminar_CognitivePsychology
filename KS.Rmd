@@ -162,7 +162,8 @@ inhib %>%   group_by(vp,block.f) %>% summarise(., trials = length(res),
                                                         lagcriticaltrials = sum(lag_crit==1),
                                                         errors = sum(fehl==1),
                                                         stopTrial = sum(stop==1),
-                                                        critStop = sum(stop==1 & krit==1)
+                                                        critStop = sum(stop==1 & krit==1),
+                                                        noncritStop = sum(stop==1 & krit==0)
                                                         )  
 
 
@@ -179,7 +180,9 @@ New number of trials: `r nrow(inhib)`.
 ### How many stop trials are also critical trials? 
 
 ```{r}
-table("stop"=inhib$stop,"krit"=inhib$krit)
+
+test <- filter(inhib, block == 4 | block == 5 | block == 6)
+table("stop"=test$stop,"krit"=test$krit)
 ```
 
 Every critical trial is a stop trial. 
@@ -281,8 +284,8 @@ inhib_crit %>% group_by(vp) %>% summarise(., trials = length(res),
 #### Updated Demographics: 
 
 ```{r}
-demo <- inhib %>% dplyr::select(.,vp,alt,ges,std) %>% 
-        filter(.,vp !=3 & vp != 6 & vp != 18) %>% group_by(.,vp)  %>%   
+demo <- inhib %>% dplyr::select(.,vp,alt,ges,std) %>% group_by(.,vp)  %>% 
+       # filter(.,vp !=3 & vp != 6 & vp != 18) %>%   
         summarise(age = mean(alt, na.rm = T),
                   gender = mean(ges, na.rm = T),
                   std = mean(std, na.rm = T)) %>% 
@@ -357,7 +360,10 @@ inhib_crit_we %>% group_by(feed.f) %>%
                              medianRT = median(rt),
                              sdRT    = sd(rt))
 
-
+inhib_crit_we %>% group_by(feed.f,block.f) %>%
+        dplyr::summarize(.,  meanRT   = mean(rt),
+                             medianRT = median(rt),
+                             sdRT    = sd(rt))
 
 ```
 
@@ -400,6 +406,8 @@ summary(pairs(referenceGrid, adjust="bonferroni")) %>%  knitr::kable(.)
 # With Block as Factor 
 mod <- aov_car(rt ~ feed.f + block.f + Error(vp/feed.f+block.f),data=inhib_crit_we,fun_aggregate = mean)
 knitr::kable(nice(mod))
+
+summary(mod)
 
 # get the least square means
 referenceGrid <- emmeans(mod, ~ feed.f * block.f)
@@ -506,6 +514,12 @@ a <- inhib_crit_we  %>% group_by(.,feed.f,vp,block.f) %>%
                                   se      = sd(rt)/sqrt(length(rt)))
 
 
+levels(id$feed.f) <- c("normal","right","wrong")
+levels(id$block.f) <- c("Block 1","Block 2","Block 3","Block 4","Block 5","Block 6")
+
+levels(a$feed.f) <- c("normal","right","wrong")
+levels(a$block.f) <- c("Block 1","Block 2","Block 3","Block 4","Block 5","Block 6")
+
 
 ggplot(id, aes(x=feed.f, y=mean,group=1)) +
      geom_smooth(method="loess") +
@@ -523,7 +537,7 @@ ggplot(id, aes(x=feed.f, y=mean,group=1)) +
         ) +
   facet_grid(.~block.f)
 
-
+ggsave("plotResultsInteraktion.png",dpi=900,width=15,height=6, units = "cm",bg = "transparent")
 
 
 ```
@@ -544,10 +558,6 @@ summary(mod)
 # get the least square means
 referenceGrid <- emmeans(mod, ~ feed.f)
 
-# pairwise comparisons
-summary(pairs(referenceGrid, adjust="bonferroni")) %>%  knitr::kable(.)
-
-
 
 
 
@@ -558,7 +568,20 @@ aggr_data <- block4_r_w %>% group_by(.,vp,feed.f) %>% summarize(mRT=mean(rt))
 
 leveneTest(mRT ~ feed.f,data=aggr_data)
 t.test(mRT ~ feed.f,data=aggr_data,paired=TRUE,equal.var=TRUE,alternative ="less")
+
+library(effsize)
+wr <- filter(aggr_data,feed.f=="wrong feedback")
+rg <- filter(aggr_data,feed.f=="right feedback")
+cohen.d(rg$mRT,wr$mRT,data=aggr_data,paired=TRUE)
+
+
+
+data <- block4 %>% dplyr::select(.,vp,rt,feed.f) %>% group_by(feed.f,vp) %>% summarize(., mRT=mean(rt)) %>% spread(feed.f,mRT) %>% write.csv2(file="KogSemJasp.csv",.)
+
 ```
+
+
+
 
 
 # Explorations 

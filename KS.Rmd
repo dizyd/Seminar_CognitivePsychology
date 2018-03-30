@@ -203,6 +203,8 @@ Error rates for each participant:
                                              Nsquare = sum(kat==0),
                                              ErrorSquare = sum(kat==0 & fehl==1)/Nsquare,
                                              Nstop   = sum(stop==1),
+                                             Nstop100  = sum(stop==1 & ssd==100),
+                                             Nstop200  = sum(stop==1 & ssd==200),
                                              ErrorStop = sum(stop==1 & fehl==1)/Nstop,
                                              ErrorStop100 = sum(stop==1 & fehl==1 & ssd==100)/sum(stop==1& ssd==100),
                                              ErrorStop200 = sum(stop==1 & fehl==1 & ssd==200)/sum(stop==1& ssd==200),
@@ -212,14 +214,14 @@ Error rates for each participant:
                                             ## RTs
                                              meanRT = mean(rt),
                                              medianRT = median(rt),
-                                             diffMeanMedian = meanRT-medianRT))
+                                             diffMeanMedian = meanRT-medianRT) %>% round(.,2))
 
 ```
 
 Aggregated  over all participants: 
 
 ```{r}
-describe(errorRates) %>% as.data.frame() %>% select(.,mean,sd,median,min,max) %>% knitr::kable(.)
+describe(errorRates) %>% as.data.frame() %>% select(.,mean,sd,median,min,max) %>% round(.,2) %>% knitr::kable(.)
 ```
 
 ### Exclusion of VPN with error rates > 15 % 
@@ -229,6 +231,71 @@ filter_vp <- filter(errorRates,ErrorTrials > 0.15) %>% select(.,vp)
 inhib <- inhib[!(inhib$vp %in% filter_vp$vp),]
 ```
 
+
+#### Updated Error Rates
+
+```{r}
+errorRates <- inhib %>% filter(., block == 4 | block == 5 | block == 6) %>% group_by(vp) %>% 
+                                summarise(., Ntrials = length(res),
+                                             Nerrors = sum(fehl==1),
+                                             ErrorTrials =  Nerrors/Ntrials,
+                                             Ncrit   = sum(lag_crit==1),
+                                             ErrorCrit = sum(lag_crit==1 & lag_error==1)/Ncrit,
+                                             Nsquare = sum(kat==0),
+                                             ErrorSquare = sum(kat==0 & fehl==1)/Nsquare,
+                                             Nstop   = sum(stop==1),
+                                             Nstop100  = sum(stop==1 & ssd==100),
+                                             Nstop200  = sum(stop==1 & ssd==200),
+                                             ErrorStop = sum(stop==1 & fehl==1)/Nstop,
+                                             ErrorStop100 = sum(stop==1 & fehl==1 & ssd==100)/sum(stop==1& ssd==100),
+                                             ErrorStop200 = sum(stop==1 & fehl==1 & ssd==200)/sum(stop==1& ssd==200),
+                                          
+                                             Ncat    = sum(kat!=0),
+                                             ErrorCat =  sum(kat!=0 & fehl==1)/Ncat,
+                                            ## RTs
+                                             meanRT = mean(rt),
+                                             medianRT = median(rt),
+                                             diffMeanMedian = meanRT-medianRT) 
+
+
+describe(errorRates) %>% as.data.frame() %>% select(.,mean,sd,median,min,max) %>% round(.,2) %>% knitr::kable(.)
+```
+
+### Plot Error Distributions
+
+```{r}
+errorRates %>% select(.,  starts_with("Error")) %>% gather() %>% dplyr::rename(.,Errors=key) %>%
+   ggplot(., aes(x=value*100, fill=Errors)) +
+          geom_density(col=NA,alpha=0.5) +
+          geom_rug(aes( y = 0,colour=Errors), position = position_jitter(height = 0),size = 1, show.legend = FALSE) +
+          xlim(c(0,50)) +
+          ggtitle("Distributions of Error Rates Accros Participants") +
+          theme_bw() + 
+          labs(
+            #title = "Hitrate",
+            x = " % Error Rate",
+            y = "Frequency",
+            color = NULL
+          )
+
+# ggsave("ErrorDistributuons.png",dpi=900,width=15,height=6, units = "cm",bg = "transparent")
+
+
+errorRates %>% select(.,  starts_with("Error")) %>% gather() %>% dplyr::rename(.,Errors=key) %>%
+   ggplot(.) +
+          geom_density(aes(x=value*100)) +
+          geom_rug(aes(x=value*100,y = 0), position = position_jitter(height = 0),size = 1, show.legend = FALSE) +
+          ggtitle("Distributions of Error Rates Accros Participants") +
+          theme_bw() + 
+          labs(
+            #title = "Hitrate",
+            x = " % Error Rate",
+            y = "Frequency",
+            color = NULL
+          ) +  facet_wrap(~Errors)
+
+
+```
 
 
 ## Analysis
@@ -589,13 +656,93 @@ data <- block4 %>% dplyr::select(.,vp,rt,feed.f) %>% group_by(feed.f,vp) %>% sum
 
 
 ```{r}
+block4 <- filter(inhib_crit, block==4)
+
 tab <- table(inhib_crit$fehl,inhib_crit$feed.f)
 tab
 tab[2,]/tab[1,]
 
-logmod_error <- glmer(fehl ~ feed.f + (feed.f|vp),data=inhib_crit,family=binomial)
+logmod_error <- glmer(fehl ~ feed.f  + (feed.f|vp),data=block4,family=binomial)
 summary(logmod_error)
 
+
+
+```
+
+
+## EZ-Diffusion model
+
+```{r}
+
+get.vaTer <- function(Pc,VRT,MRT,s=0.1){
+  
+  s2=s^2 # default value of the scaling paramter == 0.1
+  
+  if(Pc==0)
+    cat("Error PC == 0 !\n")
+  if(Pc==0.5)
+    cat("Error PC == 0.5 !\n")
+  if(Pc==1)
+    cat("Error PC == 1 !\n")
+  
+  
+  L = qlogis(Pc) # calculate logit
+  x = L*(L*Pc^2 - L*Pc + Pc - .5)/VRT
+  v = sign(Pc-.5)*s*x^(1/4) # drift rate
+  a = s2*L/v # boundary spereation
+  y = -v*a/s2
+  
+  MDT = (a/(2*v))*(1-exp(y))/(1+exp(y))
+  Ter = MRT - MDT # non decision time
+  
+  return(list("drift rate= "= v,
+              "boundary spereration = " = a,
+              "non decision time = " = Ter))
+  
+
+  
+}
+
+
+inhib_crit %>% group_by(feed.f) %>% summarize( ., trials = length(res),
+                                                  errors=sum(fehl==1),
+                                                  errorrate = errors/trials,
+                                                  Pc = sum(fehl==0)/trials,
+                                                  check = errorrate + Pc,
+                                                  MRT  = mean(rt)/1000,
+                                                  VRT = var(rt)/(1000^2))
+
+
+
+
+
+
+
+
+# right 
+get.vaTer(Pc=0.960,VRT=0.0189,MRT=0.592,s=0.1)
+
+# wrong
+get.vaTer(Pc=0.963,VRT=0.0165,MRT=0.598,s=0.1)
+
+# normal
+get.vaTer(Pc=0.964,VRT=0.0173,MRT=0.559,s=0.1)
+
+
+
+
+temp <- inhib_crit %>% group_by(feed.f,vp) %>% summarize( ., trials = length(res),
+                                                  errors=sum(fehl==1),
+                                                  errorrate = errors/trials,
+                                                  Pc = sum(fehl==0)/trials,
+                                                  check = errorrate + Pc,
+                                                  MRT  = mean(rt,na.rm=TRUE)/1000,
+                                                  VRT = var(rt)/(1000^2))
+
+ez <- get.vaTer(Pc=temp$Pc,VRT=temp$VRT,MRT=temp$MRT,s=0.1)
+
+m_v <- lm(unlist(ez[1])  ~ temp$feed.f)
+summary(m_v)
 
 
 ```

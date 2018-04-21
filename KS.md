@@ -1,7 +1,7 @@
 ---
 title: "Cognitive Psychology Seminar - Inhibition"
 author: "David I., L. V., L. P., S. R"
-date: '2018-03-30'
+date: '2018-04-21'
 output:
   html_document:
     code_folding: show
@@ -385,7 +385,7 @@ errorRates %>% select(.,  starts_with("Error")) %>% gather() %>% dplyr::rename(.
 ![](KS_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
 ```r
-# ggsave("ErrorDistributuons.png",dpi=900,width=12,height=6, units = "cm",bg = "transparent")
+#ggsave("ErrorDistributuons.png",dpi=900,width=15,height=6, units = "cm",bg = "transparent")
 
 
 errorRates %>% select(.,  starts_with("Error")) %>% gather() %>% dplyr::rename(.,Errors=key) %>%
@@ -622,6 +622,19 @@ plotDF <- inhib_crit_we %>% group_by(vp,feed.f) %>%
 ```
 
 ![](KS_files/figure-html/unnamed-chunk-18-2.png)<!-- -->
+
+```r
+plotDF <- inhib_crit_we %>% group_by(vp,feed.f,block.f) %>% 
+  dplyr::summarize(.,  meanRT   = mean(rt))
+
+
+  ggplot(plotDF, aes(x=meanRT, fill=feed.f)) +
+          geom_density(col=NA,alpha=0.4) +
+          ggtitle("Distributions of RT (ms)") +
+          facet_grid(.~block.f)
+```
+
+![](KS_files/figure-html/unnamed-chunk-18-3.png)<!-- -->
 
 
 #### ANOVA
@@ -1101,212 +1114,4 @@ data <- block4 %>% dplyr::select(.,vp,rt,feed.f) %>% group_by(feed.f,vp) %>% sum
 ```
 
 
-
-
-
-# Explorations 
-## Logistic regression on errors
-
-
-
-```r
-block4 <- filter(inhib_crit, block==4)
-
-tab <- table(inhib_crit$fehl,inhib_crit$feed.f)
-tab
-```
-
-```
-##    
-##     normal right feedback wrong feedback
-##   0   2315            576            571
-##   1     87             24             22
-```
-
-```r
-tab[2,]/tab[1,]
-```
-
-```
-##         normal right feedback wrong feedback 
-##     0.03758099     0.04166667     0.03852890
-```
-
-```r
-logmod_error <- glmer(fehl ~ feed.f  + (feed.f|vp),data=block4,family=binomial)
-summary(logmod_error)
-```
-
-```
-## Generalized linear mixed model fit by maximum likelihood (Laplace
-##   Approximation) [glmerMod]
-##  Family: binomial  ( logit )
-## Formula: fehl ~ feed.f + (feed.f | vp)
-##    Data: block4
-## 
-##      AIC      BIC   logLik deviance df.resid 
-##    330.3    376.1   -156.1    312.3     1191 
-## 
-## Scaled residuals: 
-##     Min      1Q  Median      3Q     Max 
-## -0.5653 -0.1751 -0.1349 -0.1077  7.4144 
-## 
-## Random effects:
-##  Groups Name                 Variance Std.Dev. Corr       
-##  vp     (Intercept)          0.78892  0.8882              
-##         feed.fright feedback 1.35368  1.1635    1.00      
-##         feed.fwrong feedback 0.02697  0.1642   -1.00 -1.00
-## Number of obs: 1200, groups:  vp, 20
-## 
-## Fixed effects:
-##                      Estimate Std. Error z value Pr(>|z|)    
-## (Intercept)           -3.9298     0.3736 -10.520   <2e-16 ***
-## feed.fright feedback  -0.8103     1.1792  -0.687    0.492    
-## feed.fwrong feedback   0.3855     0.5891   0.654    0.513    
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## Correlation of Fixed Effects:
-##             (Intr) fd.frf
-## fd.frghtfdb -0.084       
-## fd.fwrngfdb -0.451  0.081
-## convergence code: 0
-## Model failed to converge with max|grad| = 0.00687127 (tol = 0.001, component 1)
-```
-
-
-## EZ-Diffusion model
-
-
-```r
-get.vaTer <- function(Pc,VRT,MRT,s=0.1){
-  
-  s2=s^2 # default value of the scaling paramter == 0.1
-  
-  if(Pc==0)
-    cat("Error PC == 0 !\n")
-  if(Pc==0.5)
-    cat("Error PC == 0.5 !\n")
-  if(Pc==1)
-    cat("Error PC == 1 !\n")
-  
-  
-  L = qlogis(Pc) # calculate logit
-  x = L*(L*Pc^2 - L*Pc + Pc - .5)/VRT
-  v = sign(Pc-.5)*s*x^(1/4) # drift rate
-  a = s2*L/v # boundary spereation
-  y = -v*a/s2
-  
-  MDT = (a/(2*v))*(1-exp(y))/(1+exp(y))
-  Ter = MRT - MDT # non decision time
-  
-  return(list("drift rate= "= v,
-              "boundary spereration = " = a,
-              "non decision time = " = Ter))
-  
-
-  
-}
-
-
-inhib_crit %>% group_by(feed.f) %>% summarize( ., trials = length(res),
-                                                  errors=sum(fehl==1),
-                                                  errorrate = errors/trials,
-                                                  Pc = sum(fehl==0)/trials,
-                                                  check = errorrate + Pc,
-                                                  MRT  = mean(rt)/1000,
-                                                  VRT = var(rt)/(1000^2))
-```
-
-<div data-pagedtable="false">
-  <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["feed.f"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["trials"],"name":[2],"type":["int"],"align":["right"]},{"label":["errors"],"name":[3],"type":["int"],"align":["right"]},{"label":["errorrate"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["Pc"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["check"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["MRT"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["VRT"],"name":[8],"type":["dbl"],"align":["right"]}],"data":[{"1":"normal","2":"2402","3":"87","4":"0.03621982","5":"0.9637802","6":"1","7":"0.5590629","8":"0.01733964"},{"1":"right feedback","2":"600","3":"24","4":"0.04000000","5":"0.9600000","6":"1","7":"0.5919448","8":"0.01885853"},{"1":"wrong feedback","2":"593","3":"22","4":"0.03709949","5":"0.9629005","6":"1","7":"0.5979927","8":"0.01652798"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-</div>
-
-```r
-# right 
-get.vaTer(Pc=0.960,VRT=0.0189,MRT=0.592,s=0.1)
-```
-
-```
-## $`drift rate= `
-## [1] 0.274563
-## 
-## $`boundary spereration = `
-## [1] 0.1157495
-## 
-## $`non decision time = `
-## [1] 0.3980745
-```
-
-```r
-# wrong
-get.vaTer(Pc=0.963,VRT=0.0165,MRT=0.598,s=0.1)
-```
-
-```
-## $`drift rate= `
-## [1] 0.287705
-## 
-## $`boundary spereration = `
-## [1] 0.1132804
-## 
-## $`non decision time = `
-## [1] 0.4156992
-```
-
-```r
-# normal
-get.vaTer(Pc=0.964,VRT=0.0173,MRT=0.559,s=0.1)
-```
-
-```
-## $`drift rate= `
-## [1] 0.285559
-## 
-## $`boundary spereration = `
-## [1] 0.1151276
-## 
-## $`non decision time = `
-## [1] 0.3719311
-```
-
-```r
-temp <- inhib_crit %>% group_by(feed.f,vp) %>% summarize( ., trials = length(res),
-                                                  errors=sum(fehl==1),
-                                                  errorrate = errors/trials,
-                                                  Pc = sum(fehl==0)/trials,
-                                                  check = errorrate + Pc,
-                                                  MRT  = mean(rt,na.rm=TRUE)/1000,
-                                                  VRT = var(rt)/(1000^2))
-
-ez <- get.vaTer(Pc=temp$Pc,VRT=temp$VRT,MRT=temp$MRT,s=0.1)
-
-m_v <- lm(unlist(ez[1])  ~ temp$feed.f)
-summary(m_v)
-```
-
-```
-## 
-## Call:
-## lm(formula = unlist(ez[1]) ~ temp$feed.f)
-## 
-## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.17058 -0.04847 -0.01494  0.05277  0.15310 
-## 
-## Coefficients:
-##                           Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)                0.30872    0.01962  15.736 4.87e-16 ***
-## temp$feed.fright feedback -0.10008    0.03398  -2.945  0.00618 ** 
-## temp$feed.fwrong feedback -0.08029    0.03270  -2.455  0.02008 *  
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## Residual standard error: 0.07848 on 30 degrees of freedom
-##   (27 observations deleted due to missingness)
-## Multiple R-squared:  0.2686,	Adjusted R-squared:  0.2198 
-## F-statistic: 5.507 on 2 and 30 DF,  p-value: 0.009178
-```
 
